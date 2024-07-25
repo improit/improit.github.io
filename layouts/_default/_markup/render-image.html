@@ -1,0 +1,73 @@
+{{ $disableImageOptimization := .Page.Site.Params.disableImageOptimization | default false }}
+{{ $url := urls.Parse .Destination }}
+{{ $plainText := .PlainText }}
+{{ $altText := .Text }}
+{{ $caption := .Title }}
+{{ $extraClass := "none" }}
+{{ $profileRounded := false }}
+{{ if findRE "extraClass=(.*)" $caption  }}
+  {{ $extraClass = findRE `extraClass=(.*)` $caption }}
+  {{ $extraClass = delimit $extraClass " "}}
+  {{ $extraClass = replace $extraClass "extraClass=" "" }}
+  {{ $caption = replaceRE `(.*)(extraClass=.*)(.*)` "$1$3" $caption  }}
+  {{ $profileRounded = true }}
+{{ else }}
+  {{ $extraClass = "rounded-md" }}
+{{ end }}
+{{ if findRE "^https?" $url.Scheme }}
+  <figure>
+    <img class="my-0 rounded-md" loading="lazy" src="{{ $url.String }}" alt="{{ $altText }}" />
+    {{ with $caption }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
+  </figure>
+{{ else }}
+  {{ $resource := "" }}
+  {{ if $.Page.Resources.GetMatch ($url.String) }}
+    {{ $resource = $.Page.Resources.GetMatch ($url.String) }}
+  {{ else if resources.GetMatch ($url.String) }}
+    {{ $resource = resources.Get ($url.String) }}
+  {{ end }}
+  {{ with $resource }}
+    <figure>
+      {{ if $disableImageOptimization }}
+      <img
+        class="my-0 rounded-md"
+        loading="lazy"
+        src="{{ .RelPermalink }}"
+        alt="{{ $altText }}"
+      />
+
+      {{ else if $profileRounded }}
+        <img
+          class="my-0 {{ $extraClass }}"
+          loading="lazy"
+          srcset="
+          {{ (.Resize "320x").RelPermalink }} 330w,
+          {{ (.Resize "320x").RelPermalink }} 330w,
+          {{ (.Resize "320x").RelPermalink }} 330w,
+          {{ (.Resize "320x").RelPermalink }} 2x"
+          src="{{ (.Resize "660x").RelPermalink }}"
+          alt="{{ $altText }}"
+        />
+
+      {{ else }}
+      <img
+        class="my-0 {{ $extraClass }}"
+        loading="lazy"
+        srcset="
+        {{ (.Resize "330x").RelPermalink }} 330w,
+        {{ (.Resize "660x").RelPermalink }} 660w,
+        {{ (.Resize "1024x").RelPermalink }} 1024w,
+        {{ (.Resize "1320x").RelPermalink }} 2x"
+        src="{{ (.Resize "660x").RelPermalink }}"
+        alt="{{ $altText }}"
+      />
+      {{ end }}
+      {{ with $caption }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
+    </figure>
+  {{ else }}
+    <figure>
+      <img class="my-0 rounded-md" loading="lazy" src="{{ $url.String }}" alt="{{ $altText }}" />
+      {{ with $caption }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
+    </figure>
+  {{ end }}
+{{ end }}
